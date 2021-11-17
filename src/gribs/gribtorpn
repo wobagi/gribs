@@ -1,0 +1,15 @@
+from pathlib import Path
+from gribs.gribmapper import GribMapper
+
+def cli():
+    parser = argparse.ArgumentParser(description="Convert grib files to rpn format")
+    parser.add_argument("--source", "-s", type=pathlib.Path, required=True, help="Source directory")
+    parser.add_argument("--target", "-t", type=pathlib.Path, required=True, help="Target rpn file")
+    parser.add_argument("-o", "--overwrite", action="store_true", help="Overwrite target if exists")
+    args = parser.parse_args()
+
+    gm = GribMapper(args.source)
+    gm.to_rpn(target=args.target, overwrite=args.overwrite)
+
+if __name__=="__main__":
+    cli()

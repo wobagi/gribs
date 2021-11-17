@@ -42,10 +42,10 @@ class Unit():
         return value * 0.01
 
 
-
 class GribMapper():
-    IP1_FROM_LEVEL = -1
     NBITS_WRITE = -32  # 
+    LVL_SFC = 0
+    LVL_GLB = 1
 
     VARS = {
         "Albedo":
@@ -54,11 +54,11 @@ class GribMapper():
         },
         "Cloud water":
         {
-            "nomvar": "QC"
+            "nomvar": {0: "QC"}
         },
         "Geopotential Height":
         {
-            "nomvar": "GZ",
+            "nomvar": {0: "GZ"},
             "unit": Unit.gpm_to_dam
         },
         "Land-sea mask":
@@ -71,7 +71,7 @@ class GribMapper():
         },
         "Pressure reduced to MSL":
         {
-            "nomvar": "PN",
+            "nomvar": {0: "PN"},
             "unit": Unit.Pa_to_hPa
         },
         "Sea ice area fraction":
@@ -80,7 +80,8 @@ class GribMapper():
         },
         "Sea surface temperature":
         {
-            "nomvar": "TM"
+            "nomvar": {0: "TM"},
+            "unit": Unit.K_to_C
         },
         "Skin temperature":
         {
@@ -89,11 +90,11 @@ class GribMapper():
         },
         "Snow density":
         {
-            "nomvar": "DN"
+            "nomvar": {0: "DN"}
         },
         "Snow depth":
         {
-            "nomvar": "SD",
+            "nomvar": {0: "SD"},
             "unit": Unit.m_to_cm
         },
         "Soil moisture content":
@@ -103,32 +104,32 @@ class GribMapper():
         },
         "Soil Temperature":
         {
-            "nomvar": {0: "TP", 100: "I0"},
+            "nomvar": {LVL_SFC: "TP", 100: "I0"},
             "unit": Unit.K_to_C,
             "ip1": {100: 1198}
         },
         "Specific humidity":
         {
-            "nomvar": "HU",
+            "nomvar": {0: "HU"},
         },
         "Surface pressure":
         {
-            "nomvar": "P0",
+            "nomvar": {0: "P0"},
             "unit": Unit.Pa_to_hPa
         },
         "Temperature":
         {
-            "nomvar": "TT",
+            "nomvar": {0: "TT"},
             "unit": Unit.K_to_C
         },
         "U component of wind":
         {
-            "nomvar": "UU",
+            "nomvar": {0: "UU"},
             "unit": Unit.m_per_s_to_kt
         },
         "V component of wind":
         {
-            "nomvar": "VV",
+            "nomvar": {0: "VV"},
             "unit": Unit.m_per_s_to_kt
         },
         "Volumetric soil ice":
@@ -138,13 +139,14 @@ class GribMapper():
     }
 
 
-    def __init__(self, grib):
+    def __init__(self, path):
+        grib = GribFile(path)
         self._msg = GribMessage(grib)
         self._level = self._msg["level"]
         self._name = self._msg["name"]
 
         try:
-            self._var = self.VAR[self._name]
+            self._var = self.VARS[self._name]
         except KeyError:
             raise KeyError(f"No such field in the dictionary: {self._name}")
 
@@ -158,7 +160,7 @@ class GribMapper():
         return self._msg["gridDefinitionDescription"] == "Latitude/longitude "
 
     def is_valid_level(self):
-        return self._msg["typeOfLevel"] in ("isobaricInhPa", "meanSea", "surface")
+        return self._msg["typeOfLevel"] in ("isobaricInhPa", "meanSea", "surface", "depthBelowLandLayer")
 
     def is_convertable(self):
         return self.has_grid() and self.is_latlon()
@@ -241,7 +243,7 @@ class GribMapper():
         params["datev"] = rmn.newdate(3, date_valid, time_valid)
         params["deet"] = 3600
         params["npas"] = hour_forec
-        params["nbits"] = self._msg["bitsPerValue"]  # shouldn't it be -32 ?
+        params["nbits"] = self.NBITS_WRITE
         params["datyp"] = 1  # 5 ?
 
         rp1a = rmn.FLOAT_IP(self.level, self.level, rmn.LEVEL_KIND_PMB)
@@ -277,20 +279,4 @@ class GribMapper():
 
     def __del__(self):
         if self._fstd_id:
-            rmn.fstcloseall()
-
-def cli():
-    parser = argparse.ArgumentParser(description="Convert grib files to rpn format")
-    parser.add_argument("--source", "-s", type=pathlib.Path, required=True, help="Source directory")
-    parser.add_argument("--target", "-t", type=pathlib.Path, required=True, help="Target rpn file")
-    parser.add_argument("-o", "--overwrite", action="store_true", help="Overwrite target if exists")
-    parser.add_argument("-p", "--progress", action="store_true", help="Show progress bar")
-    parser.add_argument("-c", "--color", action="store_true", help="Use output coloring")
-    args = parser.parse_args()
-
-    gf = GribFile(args.source)
-    gm = GribRPNMapper(gf)
-    gm.to_rpn(target=args.target, overwrite=args.overwrite)
-
-if __name__=="__main__":
-    cli()
+            rmn.fstcloseall(self._fstd_id)
