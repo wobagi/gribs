@@ -7,10 +7,16 @@ def cli():
     parser.add_argument("--source", "-s", type=pathlib.Path, required=True, help="Source directory")
     parser.add_argument("--target", "-t", type=pathlib.Path, required=True, help="Target rpn file")
     parser.add_argument("-o", "--overwrite", action="store_true", help="Overwrite target if exists")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Display FSTD output")
     args = parser.parse_args()
 
-    gm = GribMapper(args.source)
-    gm.to_rpn(target=args.target, overwrite=args.overwrite)
+    for f in args.source.glob("*SOIL*.grib2"):
+        print(f"Reading {str(f.name)}")
+        gm = GribMapper(str(f))
+        gm.verbose = args.verbose
+        gm.etiket = "G0928V3N"
+        if gm.is_required():
+            gm.to_rpn(target=args.target, overwrite=args.overwrite)
 
 if __name__=="__main__":
     cli()

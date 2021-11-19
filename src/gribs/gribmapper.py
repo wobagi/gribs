@@ -1,179 +1,190 @@
 #!/usr/bin/env python3
 
-import os
-import sys
 import pathlib
-import argparse
 import numpy as np
 import fstd2nc
 import rpnpy.librmn.all as rmn
 from eccodes import GribFile, GribMessage
 
-CONVIP_STYLE_NEW = 2
+from gribs.units import Unit
 
-class Unit():
-    """
-    Simple unit conversion functions.
-    Use pint or other fully fledged lib
-    in case more comprehensive conversions are needed.
-    """
-    @staticmethod
-    def ident(value):
-        return value
-
-    @staticmethod
-    def m_per_s_to_kt(value):
-        return value * 1.9438
-
-    @staticmethod
-    def K_to_C(value):
-        return value - 273.15
-
-    @staticmethod
-    def m_to_cm(value):
-        return value * 100
-
-    @staticmethod
-    def gpm_to_dam(value):
-        return value * 0.1
-
-    @staticmethod
-    def Pa_to_hPa(value):
-        return value * 0.01
-
+LVL_SFC = "surface"
+LVL_ISBL = "isobaricInhPa"
+LVL_ISBY = "isobaricLayer"
+LVL_TGL = "heightAboveGround"
+LVL_DBLL = "depthBelowLandLayer"
+LVL_MSL = "meanSea"
+LVL_EATM = "atmosphere"
+LVL_NTAT = "nominalTop"
 
 class GribMapper():
-    NBITS_WRITE = -32  # 
-    LVL_SFC = 0
-    LVL_GLB = 1
-
     VARS = {
         "Albedo":
         {
-            "nomvar": {0: "AL"}
+            "nomvar": {LVL_SFC: "AL", LVL_ISBL: "AL"}
         },
         "Cloud water":
         {
-            "nomvar": {0: "QC"}
+            "nomvar": {LVL_SFC: "QC", LVL_ISBL: "QC"}
         },
         "Geopotential Height":
         {
-            "nomvar": {0: "GZ"},
+            "nomvar": {LVL_SFC: "GZ", LVL_ISBL: "GZ"},
             "unit": Unit.gpm_to_dam
         },
         "Land-sea mask":
         {
-            "nomvar": {0: "MQ"}
+            "nomvar": {LVL_SFC: "MQ", LVL_ISBL: "MQ"}
         },
         "Orography":  # REAL [m2/s2] --> gpm (geopotential metres)
         {
-            "nomvar": {0: "MX"}
+            "nomvar": {LVL_SFC: "MX", LVL_ISBL: "MX"}
         },
         "Pressure reduced to MSL":
         {
-            "nomvar": {0: "PN"},
+            "nomvar": {LVL_SFC: "PN", LVL_ISBL: "PN"},
             "unit": Unit.Pa_to_hPa
         },
         "Sea ice area fraction":
         {
-            "nomvar": {0: "LG"}
+            "nomvar": {LVL_SFC: "LG", LVL_ISBL: "LG"}
         },
         "Sea surface temperature":
         {
-            "nomvar": {0: "TM"},
+            "nomvar": {LVL_SFC: "TM", LVL_ISBL: "TM"},
             "unit": Unit.K_to_C
         },
         "Skin temperature":
         {
-            "nomvar": {0: "TS"},
+            "nomvar": {LVL_SFC: "TS", LVL_ISBL: "TS"},
             "unit": Unit.K_to_C
         },
         "Snow density":
         {
-            "nomvar": {0: "DN"}
+            "nomvar": {LVL_SFC: "DN", LVL_ISBL: "DN"}
         },
         "Snow depth":
         {
-            "nomvar": {0: "SD"},
-            "unit": Unit.m_to_cm
+            "nomvar": {LVL_SFC: "SD", LVL_ISBL: "SD"},
+            "unit": Unit.m_to_cm,
+            "ip1": {LVL_SFC: "ip1_snod_sfc"}
         },
         "Soil moisture content":
         {
-            "nomvar": {0: "HS", 10: "I1", 100: "I1"},
-            "ip1": {10: "", 100: ""}
+            "nomvar": {LVL_SFC: "HS", LVL_ISBL: "HS", LVL_DBLL: "I1"},
+            "ip1": {LVL_DBLL: "ip1_soilw_dbll"}
         },
         "Soil Temperature":
         {
-            "nomvar": {LVL_SFC: "TP", 100: "I0"},
+            "nomvar": {LVL_SFC: "TP", LVL_ISBL: "TP", LVL_DBLL: "I0"},
             "unit": Unit.K_to_C,
-            "ip1": {100: 1198}
+            "ip1": {LVL_DBLL: "ip1_tsoil_dbll"}
         },
         "Specific humidity":
         {
-            "nomvar": {0: "HU"},
+            "nomvar": {LVL_SFC: "HU", LVL_ISBL: "HU"},
         },
         "Surface pressure":
         {
-            "nomvar": {0: "P0"},
+            "nomvar": {LVL_SFC: "P0", LVL_ISBL: "P0"},
             "unit": Unit.Pa_to_hPa
         },
         "Temperature":
         {
-            "nomvar": {0: "TT"},
+            "nomvar": {LVL_SFC: "TT", LVL_ISBL: "TT"},
             "unit": Unit.K_to_C
         },
         "U component of wind":
         {
-            "nomvar": {0: "UU"},
+            "nomvar": {LVL_SFC: "UU", LVL_ISBL: "UU"},
             "unit": Unit.m_per_s_to_kt
         },
         "V component of wind":
         {
-            "nomvar": {0: "VV"},
+            "nomvar": {LVL_SFC: "VV", LVL_ISBL: "VV"},
             "unit": Unit.m_per_s_to_kt
         },
         "Volumetric soil ice":
         {
-            "nomvar": {0: "I2"}  # kg/m2 ?
+            "nomvar": {LVL_SFC: "I2", LVL_ISBL: "I2"}  # kg/m2 ?
         }
     }
 
 
     def __init__(self, path):
-        grib = GribFile(path)
+        grib = GribFile(str(path))
         self._msg = GribMessage(grib)
+        self._filepath = pathlib.Path(path)
+        self._filename = self._filepath.name
         self._level = self._msg["level"]
+        self._level_type = self._msg["typeOfLevel"]
         self._name = self._msg["name"]
+        self._verbose = False
+        self._fstd_id = None
+        self._etiket = ""
 
         try:
             self._var = self.VARS[self._name]
         except KeyError:
-            raise KeyError(f"No such field in the dictionary: {self._name}")
+            self._var = "UNKNOWN"
 
-        self._fstd_id = None
-        self._etiket = "G0928V3N"
-
-    def has_grid(self):
-        return self._msg["gridDescriptionSectionPresent"] == 1
-
-    def is_latlon(self):
-        return self._msg["gridDefinitionDescription"] == "Latitude/longitude "
-
-    def is_valid_level(self):
-        return self._msg["typeOfLevel"] in ("isobaricInhPa", "meanSea", "surface", "depthBelowLandLayer")
-
-    def is_convertable(self):
-        return self.has_grid() and self.is_latlon()
-
-    def _unit_conversion(self, value):
         try:
-            return self._var["unit"](value)
+            ip1_func = self._var["ip1"][self._level_type]
         except:
-            return value
+            ip1_func = "ip1_from_level"
+        self._ip1 = getattr(self, ip1_func)()
+
+        try:
+            self._nomvar = self._var["nomvar"][self._level_type]
+        except:
+            self._nomvar = "UNKN"
+
+        try:
+            self._unit_func = self._var["unit"]
+        except:
+            self._unit_func = Unit.ident
+
+
+    def __del__(self):
+        if self._fstd_id:
+            rmn.fstcloseall(self._fstd_id)
+
+    def __repr__(self):
+        return f"{self._filename}, nomvar: {self.nomvar}, ip1: {self.ip1}"
+
+    def __str__(self):
+        return f"{self._filename}, nomvar: {self.nomvar}, ip1: {self.ip1}"
 
     @property
-    def level(self):
-        return self._level
+    def _dlon(self):
+        return self._msg["iDirectionIncrementInDegrees"]
+
+    @property
+    def _dlat(self):
+        return self._msg["jDirectionIncrementInDegrees"]
+
+    @property
+    def data(self):
+        field = self._msg["values"]
+        values = self._convert_unit(field)
+        d64 = np.reshape(values, (self.ni, self.nj), order='F')
+        return np.float32(d64)
+
+    @property
+    def etiket(self):
+        return self._etiket
+
+    @etiket.setter
+    def etiket(self, value):
+        self._etiket = value
+
+    @property
+    def ip1(self):
+        return self._ip1
+
+    @ip1.setter
+    def ip1(self, value):
+        self._ip1 = value
 
     @property
     def _lat_zero(self):
@@ -192,48 +203,70 @@ class GribMapper():
         return self._msg["Nj"]
 
     @property
-    def _dlon(self):
-        return self._msg["iDirectionIncrementInDegrees"]
-
-    @property
-    def _dlat(self):
-        return self._msg["jDirectionIncrementInDegrees"]
-
-    @property
     def name(self):
         return self._name
 
     @property
-    def data(self):
-        field = self._msg["values"]
-        values = self._unit_conversion(field)
-        d64 = np.reshape(values, (self.ni, self.nj), order='F')
-        return np.float32(d64)
-
-    @property
     def nomvar(self):
-        try:
-            nv = self._var["nomvar"][self._level]
-        except:
-            nv = self._var["nomvar"][0]
-        return f"{nv:<4}"
+        return f"{self._nomvar:<4}"
 
-    def get_fstd_grid_meta(self):
+    @nomvar.setter
+    def nomvar(self, value):
+        self._nomvar = value
+ 
+    @property
+    def verbose(self):
+        return self._verbose
+
+    @verbose.setter
+    def verbose(self, value):
+        self._verbose = value
+
+    def _convert_unit(self, value):
+        return self._unit_func(value)
+
+    def has_grid(self):
+        return self._msg["gridDescriptionSectionPresent"] == 1
+
+    def ip1_soilw_dbll(self):
+        """
+        The only parameter that distinguishes levels
+        of 'soilw' field is scaleFactorOfSecondFixedSurface
+        Level 10 is value 2 
+        Level 100 is value 1
+        It may change in the future.
+        """
+        factor = int(self._msg["scaleFactorOfSecondFixedSurface"])
+        mapping = {1: 1198, 2: 1199}
+        return mapping[factor]
+
+    def ip1_snod_sfc(self):
+        return 1195
+
+    def ip1_tsoil_dbll(self):
+        if self._level_type == LVL_DBLL:
+            return 1198
+
+    def ip1_from_level(self):
+        return rmn.convertIp(rmn.CONVIP_ENCODE, self._level, rmn.KIND_PRESSURE)
+
+    def is_latlon(self):
+        return self._msg["gridDefinitionDescription"] == "Latitude/longitude "
+
+    def is_convertable(self):
+        return self.has_grid() and self.is_latlon()
+
+    def is_required(self):
+        return self.is_convertable() and self.name in self.VARS
+
+    def _get_fstd_grid_meta(self):
         grtyp = 'L'
         (ig1, ig2, ig3, ig4) = rmn.cxgaig(grtyp, self._lat_zero, self._lon_zero, self._dlat, self._dlon)
         gid = rmn.ezqkdef(self.ni, self.nj, grtyp, ig1, ig2, ig3, ig4)
         return rmn.ezgprm(gid)
 
-    @property
-    def ip1(self):
-        try:
-            var_ip1 = self._var["ip1"][self._level]
-        except:
-            var_ip1 = rmn.convertIp(CONVIP_STYLE_NEW, self._level, 1)
-        return var_ip1
-
-    def fstd_meta(self):
-        params = self.get_fstd_grid_meta()
+    def _fstd_meta(self):
+        params = self._get_fstd_grid_meta()
         date_valid = self._msg["validityDate"]
         time_valid = self._msg["validityTime"]
         hour_forec = self._msg["forecastTime"]
@@ -242,17 +275,12 @@ class GribMapper():
         params["dateo"] = rmn.newdate(3, date_valid, time_valid) - 3600 * hour_forec
         params["datev"] = rmn.newdate(3, date_valid, time_valid)
         params["deet"] = 3600
-        params["npas"] = hour_forec
-        params["nbits"] = self.NBITS_WRITE
-        params["datyp"] = 1  # 5 ?
-
-        rp1a = rmn.FLOAT_IP(self.level, self.level, rmn.LEVEL_KIND_PMB)
-        rp2a = rmn.FLOAT_IP(hour_forec, hour_forec, rmn.TIME_KIND_HR)
-        rp3a = rmn.FLOAT_IP(0., 0., rmn.KIND_ARBITRARY)
-        (ip1, ip2, ip3) = rmn.EncodeIp(rp1a, rp2a, rp3a)           
-        params["ip1"] = ip1
-        params["ip2"] = ip2
-        params["ip3"] = ip3
+        params["npas"] = 0
+        params["nbits"] = -32
+        params["datyp"] = 1
+        params["ip1"] = self.ip1
+        params["ip2"] = 0
+        params["ip3"] = 0
         params["typvar"] = "P "
         params["nomvar"] = self.nomvar
         params["etiket"] = f"{self._etiket:<12}"
@@ -260,23 +288,30 @@ class GribMapper():
         return params
 
     def _init_fstd_file(self, target, overwrite):
-        if target.exists():
-            if overwrite:
-                target.unlink()
-            else:
-                raise FileExistsError("The target already exists. Use -o/--overwrite option to overwrite.")
-        rmn.fstopt(rmn.FSTOP_MSGLVL, rmn.FSTOPI_MSG_CATAST)
-        rmn.fstopt(rmn.FSTOP_TOLRNC, rmn.FSTOPI_MSG_CATAST)
+        if target.exists() and overwrite:
+            target.unlink()
+        if not self._verbose:
+            rmn.fstopt(rmn.FSTOP_MSGLVL, rmn.FSTOPI_MSG_CATAST)
+            rmn.fstopt(rmn.FSTOP_TOLRNC, rmn.FSTOPI_MSG_CATAST)
         self._fstd_id = rmn.fstopenall(str(target), rmn.FST_RW)
         return self._fstd_id
+
+    def list(self):
+        for k, v in self._msg.items():
+            print(v)
+
+    def plot(self):
+        raise NotImplementedError
 
     def to_rpn(self, target, overwrite=False):
         self._fstd_id = self._init_fstd_file(target, overwrite)
         try:
-            rmn.fstecr(iunit=self._fstd_id, data=self.data, meta=self.fstd_meta(), rewrite=False)
+            rmn.fstecr(iunit=self._fstd_id, data=self.data, meta=self._fstd_meta(), rewrite=True)
         except rmn.FSTDError:
             raise IOError("Problem writing rpn record")
+        rmn.fstcloseall(self._fstd_id)
+        self._fstd_id = None
 
-    def __del__(self):
-        if self._fstd_id:
-            rmn.fstcloseall(self._fstd_id)
+    def to_csv(self, target, overwrite=False):
+        with open(target, "a") as f:
+            f.write(str(self))
