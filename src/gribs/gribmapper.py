@@ -126,7 +126,7 @@ class GribMapper():
         try:
             self._var = self.VARS[self._name]
         except KeyError:
-            self._var = "UNKNOWN"
+            self._var = {"UNKNOWN": {}}
 
         try:
             ip1_func = self._var["ip1"][self._level_type]
