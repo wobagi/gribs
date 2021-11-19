@@ -130,20 +130,19 @@ class GribMapper():
 
         try:
             ip1_func = self._var["ip1"][self._level_type]
-        except:
+        except KeyError:
             ip1_func = "ip1_from_level"
         self._ip1 = getattr(self, ip1_func)()
 
         try:
             self._nomvar = self._var["nomvar"][self._level_type]
-        except:
+        except KeyError:
             self._nomvar = "UNKN"
 
         try:
             self._unit_func = self._var["unit"]
-        except:
+        except KeyError:
             self._unit_func = Unit.ident
-
 
     def __del__(self):
         if self._fstd_id:
@@ -298,7 +297,7 @@ class GribMapper():
 
     def list(self):
         for k, v in self._msg.items():
-            print(v)
+            print(f"{k}: {v}")
 
     def plot(self):
         raise NotImplementedError
