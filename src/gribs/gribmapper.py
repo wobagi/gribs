@@ -296,8 +296,12 @@ class GribMapper():
         return self._fstd_id
 
     def list(self):
-        for k, v in self._msg.items():
-            print(f"{k}: {v}")
+        print(f"{self._filename}: "
+              f"{self.name}, "
+              f"level: {self._level}, "
+              f"min: {np.min(self.data)}, "
+              f"max: {np.max(self.data)}, "
+              f"units: {self._msg['parameterUnits']}")
 
     def plot(self):
         raise NotImplementedError
