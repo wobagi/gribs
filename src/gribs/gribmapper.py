@@ -247,7 +247,8 @@ class GribMapper():
             return 1198
 
     def ip1_from_level(self):
-        return rmn.convertIp(rmn.CONVIP_ENCODE, self._level, rmn.KIND_PRESSURE)
+        return self._level
+        # return rmn.convertIp(rmn.CONVIP_ENCODE, self._level, rmn.KIND_PRESSURE)
 
     def is_latlon(self):
         return self._msg["gridDefinitionDescription"] == "Latitude/longitude "
