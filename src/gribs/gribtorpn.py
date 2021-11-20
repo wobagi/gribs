@@ -10,7 +10,7 @@ def cli():
     parser.add_argument("-v", "--verbose", action="store_true", help="Display FSTD output")
     args = parser.parse_args()
 
-    for f in args.source.glob("*SOIL*.grib2"):
+    for f in args.source.glob("*.grib2"):
         print(f"Reading {str(f.name)}")
         gm = GribMapper(str(f))
         gm.verbose = args.verbose
