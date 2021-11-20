@@ -10,7 +10,7 @@ def cli():
     parser.add_argument("-v", "--verbose", action="store_true", help="Display FSTD output")
     args = parser.parse_args()
 
-    for f in args.source.glob("*.grib2"):
+    for f in sorted(args.source.glob("*.grib2")):
         gm = GribMapper(str(f))
         gm.verbose = args.verbose
         gm.etiket = "G0928V3N"
