@@ -257,7 +257,13 @@ class GribMapper():
         return self.has_grid() and self.is_latlon()
 
     def is_required(self):
-        return self.is_convertable() and self.name in self.VARS
+        try:
+            level_known = self._level_type in self.VARS[self.name]
+            if level_known and self.is_convertable:
+                return True
+        except KeyError:
+            return False
+        return False
 
     def _get_fstd_grid_meta(self):
         grtyp = 'L'
