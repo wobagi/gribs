@@ -258,8 +258,8 @@ class GribMapper():
 
     def is_required(self):
         try:
-            level_known = self._level_type in self.VARS[self.name]
-            if level_known and self.is_convertable:
+            level_known = self._level_type in self.VARS[self.name]["nomvar"]
+            if level_known and self.is_convertable():
                 return True
         except KeyError:
             return False

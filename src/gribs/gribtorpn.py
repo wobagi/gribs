@@ -11,11 +11,11 @@ def cli():
     args = parser.parse_args()
 
     for f in args.source.glob("*.grib2"):
-        print(f"Reading {str(f.name)}")
         gm = GribMapper(str(f))
         gm.verbose = args.verbose
         gm.etiket = "G0928V3N"
         if gm.is_required():
+            print(f"Converting {str(f.name)}")
             gm.to_rpn(target=args.target, overwrite=args.overwrite)
 
 if __name__=="__main__":
