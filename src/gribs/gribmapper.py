@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import builtins
 import pathlib
 import numpy as np
 import fstd2nc
@@ -302,7 +303,7 @@ class GribMapper():
         self._fstd_id = rmn.fstopenall(str(target), rmn.FST_RW)
         return self._fstd_id
 
-    def list(self):
+    def list(self, print=builtins.print):
         print(f"{self._filename}: "
               f"{self.name}, "
               f"level: {self._level}, "
