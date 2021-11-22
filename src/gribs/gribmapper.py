@@ -237,19 +237,23 @@ class GribMapper():
         It may change in the future.
         """
         factor = int(self._msg["scaleFactorOfSecondFixedSurface"])
-        mapping = {1: 1198, 2: 1199}
-        return mapping[factor]
+        # mapping = {1: 1199, 2: 1198}
+        # return mapping[factor]
+        return rmn.convertIp(3, factor, 3)  # mode=3, kind=3, NEWSTYLE forced to false
+        
 
     def ip1_snod_sfc(self):
-        return 1195
+        return 1195  # ip1 5.0, kind=2
 
     def ip1_tsoil_dbll(self):
         if self._level_type == LVL_DBLL:
             return 1198
 
     def ip1_from_level(self):
-        return self._level
-        # return rmn.convertIp(rmn.CONVIP_ENCODE, self._level, rmn.KIND_PRESSURE)
+        if self._level < 1101:
+            return rmn.ip1_val(self._level, 2)
+        else:
+            return rmn.ip1_val(self._level, 3)
 
     def is_latlon(self):
         return self._msg["gridDefinitionDescription"] == "Latitude/longitude "
