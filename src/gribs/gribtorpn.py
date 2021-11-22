@@ -7,7 +7,7 @@ from gribs.gribmapper import GribMapper
 def convert(path, args):
     gm = GribMapper(str(path))
     gm.verbose = args.verbose
-    gm.etiket = "G0928V3N"
+    gm.etiket = args.etiket
     if gm.is_required():
         print(f"{str(path.name)} - Converting ...")
         gm.to_rpn(target=args.target, overwrite=args.overwrite)
@@ -20,6 +20,7 @@ def cli():
     parser.add_argument("source", nargs="+", type=pathlib.Path, help="A dir or a single grib file")
     parser.add_argument("--target", "-t", type=pathlib.Path, required=True, help="Target rpn file")
     parser.add_argument("--glob", "-g", type=str, default="*.grib?", help="Glob string. Defaults to '*.grib?'")
+    parser.add_argument("--etiket", "-e", type=str, default="G092V3N", help="Set 'etiket' value for resulting rpn file.")
     parser.add_argument("-o", "--overwrite", action="store_true", help="Overwrite target if exists")
     parser.add_argument("-v", "--verbose", action="store_true", help="Display FSTD output")
     args = parser.parse_args()
