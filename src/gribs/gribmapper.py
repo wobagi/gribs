@@ -243,7 +243,7 @@ class GribMapper():
         
 
     def ip1_snod_sfc(self):
-        return 1195  # ip1 5.0, kind=2
+        return 59868832  # ip1 1.0, kind=3
 
     def ip1_tsoil_dbll(self):
         if self._level_type == LVL_DBLL:
