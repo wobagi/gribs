@@ -13,7 +13,7 @@ def convert(path, args):
         gm.to_rpn(target=args.target, overwrite=args.overwrite)
     else:
         print(f"{str(path.name)} -",
-              f"{gm.name} @ {gm._level_type} ({gm._level}) is missing from GribMapper dictionary.")
+              f"{gm.gribvar} @ {gm._level_type} ({gm._level}) is missing from GribMapper dictionary.")
 
 def cli():
     parser = argparse.ArgumentParser(description="Convert grib files to rpn format")
