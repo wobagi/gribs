@@ -5,7 +5,7 @@ import argparse
 from gribs.gribmapper import GribMapper
 
 def convert(path, args):
-    gm = GribMapper(str(path))
+    gm = GribMapper(str(path), ip_oldstyle=args.oldstyle)
     gm.verbose = args.verbose
     gm.etiket = args.etiket
     if gm.is_required():
@@ -22,6 +22,7 @@ def cli():
     parser.add_argument("-g", "--glob", type=str, default="*.grib?", help="Glob string applied to all specified source dirs. Does not affect individual files specified explicitly. Defaults to '*.grib?' to match both grib and grib2 extension.")
     parser.add_argument("-e", "--etiket", type=str, default="G092V3N", help="Set etiket column value for resulting rpn file.")
     parser.add_argument("-o", "--overwrite", action="store_true", help="Overwrite target file if exists. Does not make much sense when processing multiple files.")
+    parser.add_argument("--oldstyle", action="store_true", help="Get IP1 code values in oldstyle format.")
     parser.add_argument("-v", "--verbose", action="store_true", help="Display FSTD output")
     args = parser.parse_args()
 

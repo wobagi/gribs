@@ -18,6 +18,10 @@ LVL_MSL = "meanSea"
 LVL_EATM = "atmosphere"
 LVL_NTAT = "nominalTop"
 
+IP_KIND_SIGMA = 1
+IP_KIND_PRESSURE = 2
+IP_KIND_ARBITRARY = 3
+
 class GribMapper():
     VARS = {
         "Albedo":
@@ -112,8 +116,11 @@ class GribMapper():
     }
 
 
-    def __init__(self, path):
-        grib = GribFile(str(path))
+    def __init__(self, path, ip_oldstyle=False):
+        try:
+            grib = GribFile(str(path))
+        except IOError as e:
+            raise e(f"Problem loading file {str(path)}")
         self._msg = GribMessage(grib)
         self._filepath = pathlib.Path(path)
         self._filename = self._filepath.name
@@ -122,6 +129,7 @@ class GribMapper():
         self._gribvar = self._msg["name"]
         self._verbose = False
         self._fstd_id = None
+        self._ip_oldstyle = ip_oldstyle
         self._etiket = ""
 
         try:
@@ -215,6 +223,14 @@ class GribMapper():
         self._nomvar = value
  
     @property
+    def oldstyle(self):
+        return self._ip_oldstyle
+
+    @oldstyle.setter
+    def oldstyle(self, value):
+        self._ip_oldstyle = value
+
+    @property
     def verbose(self):
         return self._verbose
 
@@ -225,6 +241,13 @@ class GribMapper():
     def _convert_unit(self, value):
         return self._unit_func(value)
 
+    def get_ip_code(self, level, kind=IP_KIND_ARBITRARY):
+        if self._ip_oldstyle:
+            mode = 3
+        else:
+            mode = 2
+        return rmn.convertIp(mode, level, kind)
+
     def has_grid(self):
         return self._msg["gridDescriptionSectionPresent"] == 1
 
@@ -232,30 +255,28 @@ class GribMapper():
         """
         The only parameter that distinguishes levels
         of 'soilw' field is scaleFactorOfSecondFixedSurface
-        Level 10 has value 2  -> coded to IP1 1.0 (1199 or 59868832 NEWSTYLE)
-        Level 100 has value 1 -> coded to IP1 2.0 (1198 or 59968832 NEWSTYLE)
+        Level 100 has value 1  -> coded to IP1 1.0 (1199 or 59868832 NEWSTYLE)
+        Level 10 has value 2 -> coded to IP1 2.0 (1198 or 59968832 NEWSTYLE)
         """
         factor = int(self._msg["scaleFactorOfSecondFixedSurface"])
-        # mapping = {1: rmn.ip1_val(2.0, 3), 2: rmn.ip1_val(1.0, 3)}
-        mapping = {1: rmn.convertIp(2, 2.0, 3), 2: rmn.convertIp(2, 1.0, 3)}
-        return mapping[factor]
+        return self.get_ip_code(level=factor)
         
     def ip1_snod_sfc(self):
-        return rmn.convertIp(2, 1.0, 3)  # ip1 1.0, kind=3, old model had 1195 (5.0 encoded)
+        return self.get_ip_code(level=1.0)
 
     def ip1_tsoil_dbll(self):
         if self._level_type == LVL_DBLL:
-            return rmn.convertIp(2, 2.0, 3)  # ip1 2.0, kind=3, corresponds to 1198 
+            return self.get_ip_code(level=1.0)  # ip1 1.0, kind=3, corresponds to 1198 
 
     def ip1_from_level(self):
         """
         Trying NEWSTYLE coding.
         """
-        # if self._level < 1101:
-        #     return rmn.ip1_val(self._level, 2)
-        # else:
-        #     return rmn.ip1_val(self._level, 3)
-        return rmn.convertIp(2, self._level, 3)
+        if 0 <= self._level and self._level < 1101:
+            ip = self.get_ip_code(level=self._level, kind=IP_KIND_PRESSURE)
+        else:
+            ip = self.get_ip_code(level=self._level, kind=IP_KIND_ARBITRARY)
+        return ip
 
     def is_latlon(self):
         return self._msg["gridDefinitionDescription"] == "Latitude/longitude "
@@ -271,6 +292,9 @@ class GribMapper():
         except KeyError:
             return False
         return False
+
+    def _infer_fstd_params(self):
+        pass
 
     def _get_fstd_grid_meta(self):
         grtyp = 'L'
