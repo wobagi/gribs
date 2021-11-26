@@ -119,13 +119,13 @@ class GribMapper():
         self._filename = self._filepath.name
         self._level = self._msg["level"]
         self._level_type = self._msg["typeOfLevel"]
-        self._name = self._msg["name"]
+        self._gribvar = self._msg["name"]
         self._verbose = False
         self._fstd_id = None
         self._etiket = ""
 
         try:
-            self._var = self.VARS[self._name]
+            self._var = self.VARS[self._gribvar]
         except KeyError:
             self._var = {"UNKNOWN": {}}
 
@@ -203,8 +203,8 @@ class GribMapper():
         return self._msg["Nj"]
 
     @property
-    def name(self):
-        return self._name
+    def gribvar(self):
+        return self._gribvar
 
     @property
     def nomvar(self):
@@ -265,7 +265,7 @@ class GribMapper():
 
     def is_required(self):
         try:
-            level_known = self._level_type in self.VARS[self.name]["nomvar"]
+            level_known = self._level_type in self.VARS[self.gribvar]["nomvar"]
             if level_known and self.is_convertable():
                 return True
         except KeyError:
@@ -311,7 +311,7 @@ class GribMapper():
 
     def list(self, print=builtins.print):
         print(f"{self._filename}: "
-              f"{self.name}, "
+              f"{self.gribvar}, "
               f"level: {self._level}, "
               f"min: {np.min(self.data)}, "
               f"max: {np.max(self.data)}, "
