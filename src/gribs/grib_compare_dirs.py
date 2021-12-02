@@ -13,23 +13,37 @@ from gribs.gribmapper import GribMapper
 
 _n = "\n"
 
-def diff(dir1, dir2):
-    cmc_files1 = [str(f) for f in dir1.glob("*.grib?")]
-    cmc_files2 = [str(f) for f in dir2.glob("*.grib?")]
+def list_gribs(dir):
+    grib_files = list()
+    if dir.is_dir():
+        grib_files = [str(f) for f in dir.glob("*.grib?")]
+        if not grib_files:
+            raise Exception(f"Dir {dir} contains no grib files.")
+    else:
+        raise ValueError(f"Dir {dir} not found")
+    return grib_files
 
-    stems1 = [re.match(".+(CMC.+)_\d{10}_", name).group(1) for name in cmc_files1]
-    stems2 = [re.match(".+(CMC.+)_\d{10}_", name).group(1) for name in cmc_files2]
+def stem(name):
+    return re.match(".+(CMC.+)_\d{10}_", name).group(1)
+
+def diff(dir1, dir2):
+    cmc_files1 = list_gribs(dir1)
+    cmc_files2 = list_gribs(dir2)
+
+    stems1 = [stem(name) for name in cmc_files1]
+    stems2 = [stem(name) for name in cmc_files2]
 
     if set(stems1)==set(stems2):
         print("Both directories contain matching layers.")
     else:
         dif1 = sorted(set(stems1)-set(stems2))
         dif2 = sorted(set(stems2)-set(stems1))
-        print("Found differences between directories")
+        dc = len(dif1) + len(dif2)
+        print(f"Found {dc} differences between directories.")
         if dif1:
-            print(f"Dir 1 unmatched layers:{_n}{_n.join(dif1)}")
+            print(f"- Dir 1 unmatched layers:{_n}{_n.join(dif1)}")
         if dif2:
-            print(f"Dir 2 unmatched layers:{_n}{_n.join(dif2)}")
+            print(f"- Dir 2 unmatched layers:{_n}{_n.join(dif2)}")
 
 def cli():
     parser = argparse.ArgumentParser(description="Diff two dirs in terms of CMC grib layers")
