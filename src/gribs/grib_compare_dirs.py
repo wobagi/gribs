@@ -11,6 +11,8 @@ from glob import glob
 
 from gribs.gribmapper import GribMapper
 
+_n = "\n"
+
 def diff(dir1, dir2):
     cmc_files1 = [str(f) for f in dir1.glob("*.grib?")]
     cmc_files2 = [str(f) for f in dir2.glob("*.grib?")]
@@ -25,9 +27,9 @@ def diff(dir1, dir2):
         dif2 = sorted(set(stems2)-set(stems1))
         print("Found differences between directories")
         if dif1:
-            print(f"Dir 1 unmatched files:{nl}{nl.join(dif1)}")
+            print(f"Dir 1 unmatched files:{_n}{_n.join(dif1)}")
         if dif2:
-            print(f"Dir 2 unmatched files:{nl}{nl.join(dif2)}")
+            print(f"Dir 2 unmatched files:{_n}{_n.join(dif2)}")
 
 def cli():
     parser = argparse.ArgumentParser(description="Diff two dirs in terms of CMC grib file types")
