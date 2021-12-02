@@ -41,7 +41,7 @@ class GribMapper():
         {
             "nomvar": {LVL_SFC: "MQ", LVL_ISBL: "MQ"}
         },
-        "Orography":  # REAL [m2/s2] --> gpm (geopotential metres)
+        "Orography":
         {
             "nomvar": {LVL_SFC: "MX", LVL_ISBL: "MX"}
         },
@@ -337,8 +337,6 @@ class GribMapper():
         print(f"{self._filename}: "
               f"{self.gribvar}, "
               f"level: {self._level}, "
-              f"min: {np.min(self.data)}, "
-              f"max: {np.max(self.data)}, "
               f"units: {self._msg['parameterUnits']}")
 
     def plot(self):
