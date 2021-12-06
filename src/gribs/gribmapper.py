@@ -310,7 +310,7 @@ class GribMapper():
         params["dtype"] = 1
         params["shape"] = (self.ni, self.nj, 1)
         params["dateo"] = rmn.newdate(3, date_valid, time_valid * 1_00_00)
-        params["datev"] = rmn.newdate(3, date_valid, time_valid * 1_00_00)
+        params["datev"] = params["dateo"]
         params["deet"] = 3600
         params["npas"] = 0
         params["nbits"] = -32
