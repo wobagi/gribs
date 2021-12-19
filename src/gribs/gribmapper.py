@@ -99,6 +99,16 @@ class GribMapper():
             "nomvar": {LVL_SFC: "TT", LVL_ISBL: "TT"},
             "unit": Unit.K_to_C
         },
+        "10 metre U wind component":
+        {
+            "nomvar": {LVL_TGL: "UU"},
+            "unit": Unit.m_per_s_to_kt
+        },
+        "10 metre V wind component":
+        {
+            "nomvar": {LVL_TGL: "VV"},
+            "unit": Unit.m_per_s_to_kt
+        },
         "U component of wind":
         {
             "nomvar": {LVL_SFC: "UU", LVL_ISBL: "UU"},
@@ -337,6 +347,7 @@ class GribMapper():
         print(f"{self._filename}: "
               f"{self.gribvar}, "
               f"level: {self._level}, "
+              f"level type: {self._level_type}, "
               f"units: {self._msg['parameterUnits']}")
 
     def plot(self):
@@ -353,4 +364,5 @@ class GribMapper():
 
     def to_csv(self, target, overwrite=False):
         with open(target, "a") as f:
-            f.write(str(self))
+            csv_line = f"{self._filename},{self.nomvar},{self.ip1},{self.gribvar},{self._level},{self._msg['parameterUnits']}"
+            f.write(csv_line)
