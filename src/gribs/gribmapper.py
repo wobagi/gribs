@@ -118,6 +118,8 @@ class GribMapper():
     def __init__(self):
         self._ip_oldstyle = False
         self._fstd_id = None
+        self._verbose = False
+        self._etiket = ""
 
     def __del__(self):
         if self._fstd_id:
@@ -134,6 +136,9 @@ class GribMapper():
         gm = cls()
         gm._msg = msg
         gm._filename = msg.grib_file.name
+        gm._level = msg["level"]
+        gm._level_type = msg["typeOfLevel"]
+        gm._gribvar = msg["name"]
         return gm
 
     @classmethod
@@ -151,14 +156,7 @@ class GribMapper():
         for msg in gf:
             yield cls().from_grib_message(msg)
 
-    def project_to_rpn(self):        
-        self._level = self._msg["level"]
-        self._level_type = self._msg["typeOfLevel"]
-        self._gribvar = self._msg["name"]
-        self._verbose = False
-        self._fstd_id = None
-        self._etiket = ""
-
+    def translate_to_rpn(self):
         try:
             self._var = self.VARS[self._gribvar]
         except KeyError:
@@ -360,7 +358,10 @@ class GribMapper():
     def plot(self):
         raise NotImplementedError
 
-    def to_rpn(self, target, overwrite=False):
+    def to_rpn(self, target, overwrite=False, ip_oldstyle=False, verbose=False):
+        self._verbose = verbose
+        self._ip_oldstyle = ip_oldstyle
+        self.translate_to_rpn()
         self._fstd_id = self._init_fstd_file(target, overwrite)
         try:
             rmn.fstecr(iunit=self._fstd_id, data=self.data, meta=self._fstd_meta(), rewrite=True)
