@@ -115,6 +115,9 @@ class GribMapper():
         }
     }
 
+    def __init__(self):
+        self._ip_oldstyle = False
+
     def __del__(self):
         if self._fstd_id:
             rmn.fstcloseall(self._fstd_id)
@@ -128,35 +131,8 @@ class GribMapper():
     @classmethod
     def from_grib_message(cls, msg):
         gm = cls()
-        gm._msg = msg
-        gm._filename = msg.grib_file.name
-        gm._level = msg["level"]
-        gm._level_type = msg["typeOfLevel"]
-        gm._gribvar = msg["name"]
-        gm._verbose = False
-        gm._fstd_id = None
-        gm._etiket = ""
-
-        try:
-            gm._var = gm.VARS[gm._gribvar]
-        except KeyError:
-            gm._var = {"UNKNOWN": {}}
-
-        try:
-            ip1_func = gm._var["ip1"][gm._level_type]
-        except KeyError:
-            ip1_func = "ip1_from_level"
-        gm._ip1 = getattr(gm, ip1_func)()
-
-        try:
-            gm._nomvar = gm._var["nomvar"][gm._level_type]
-        except KeyError:
-            gm._nomvar = "UNKN"
-
-        try:
-            gm._unit_func = gm._var["unit"]
-        except KeyError:
-            gm._unit_func = Unit.ident
+        gm._filename = gm.grib_file.name
+        return gm
 
     @classmethod
     def from_grib_file(cls, grib_file):
@@ -172,6 +148,35 @@ class GribMapper():
             raise e(f"Problem loading file {str(path)}")
         for msg in gf:
             yield cls().from_grib_message(msg)
+
+    def project_to_rpn(self):        
+        self._level = self._msg["level"]
+        self._level_type = self._msg["typeOfLevel"]
+        self._gribvar = self._msg["name"]
+        self._verbose = False
+        self._fstd_id = None
+        self._etiket = ""
+
+        try:
+            self._var = self.VARS[self._gribvar]
+        except KeyError:
+            self._var = {"UNKNOWN": {}}
+
+        try:
+            ip1_func = self._var["ip1"][self._level_type]
+        except KeyError:
+            ip1_func = "ip1_from_level"
+        self._ip1 = getattr(self, ip1_func)()
+
+        try:
+            self._nomvar = self._var["nomvar"][self._level_type]
+        except KeyError:
+            self._nomvar = "UNKN"
+
+        try:
+            self._unit_func = self._var["unit"]
+        except KeyError:
+            self._unit_func = Unit.ident
 
     @property
     def _dlon(self):
