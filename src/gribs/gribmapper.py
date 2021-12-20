@@ -117,6 +117,7 @@ class GribMapper():
 
     def __init__(self):
         self._ip_oldstyle = False
+        self._fstd_id = None
 
     def __del__(self):
         if self._fstd_id:
@@ -131,7 +132,8 @@ class GribMapper():
     @classmethod
     def from_grib_message(cls, msg):
         gm = cls()
-        gm._filename = gm.grib_file.name
+        gm._msg = msg
+        gm._filename = msg.grib_file.name
         return gm
 
     @classmethod
@@ -299,7 +301,7 @@ class GribMapper():
     def is_convertable(self):
         return self.has_grid() and self.is_latlon()
 
-    def is_required(self):
+    def is_recognized(self):
         try:
             level_known = self._level_type in self.VARS[self.gribvar]["nomvar"]
             if level_known and self.is_convertable():
