@@ -7,7 +7,7 @@ def cli():
     parser.add_argument("source", type=pathlib.Path, help="Source file")
     args = parser.parse_args()
 
-    gm = GribMapper(str(args.source))
+    gm = GribMapper.from_path(str(args.source))
     gm.list()
 
 if __name__=="__main__":
